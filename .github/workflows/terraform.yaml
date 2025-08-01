@@ -1,0 +1,108 @@
+name: Terraform CI/CD (dev)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  lint_validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: Init TFLint plugins
+        run: tflint --init
+      - name: TFLint
+        run: tflint --recursive
+
+      - name: Terraform fmt (check)
+        run: terraform fmt -check -recursive
+
+      - name: Terraform validate (dev)
+        working-directory: ./envs/dev/s3
+        run: terraform init -backend=false && terraform validate
+
+  unit_tests_ts:
+    needs: [lint_validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Node + dev deps
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install npm dependencies
+        run: |
+          npm ci           # uses package.json we just added
+
+      # Terraform needed for the tests
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Run Jest plan-only tests
+        run: npm test
+
+  plan_dev:
+    needs: [unit_tests_ts]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (DEV)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform init -input=false
+
+      - name: Terraform plan (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform plan -input=false -out=plan.tfplan
+
+      - name: Fail on destructive changes
+        working-directory: ./envs/dev/s3
+        run: |
+          terraform show -json plan.tfplan | jq -e '
+            .resource_changes[]? | select(.change.actions[] | contains("delete"))
+          ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
+
+  apply_dev:
+    needs: [plan_dev]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (DEV)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform init -input=false
+
+      - name: Terraform apply (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform apply -input=false -auto-approve plan.tfplan
