@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.0.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -16,6 +18,11 @@ locals {
 
   # Build trust subjects. You can extend this list (e.g., tags or PRs) if needed.
   github_sub = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
+  
+  # Common tags including account ID
+  common_tags = merge(var.tags, {
+    AccountId = var.aws_account_id
+  })
 }
 
 # --- (Optional) KMS Key ---
@@ -24,7 +31,7 @@ resource "aws_kms_key" "bucket" {
   description             = "KMS key for ${local.bucket_name}"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  tags                    = var.tags
+  tags                    = local.common_tags
 }
 
 resource "aws_kms_alias" "bucket" {
@@ -41,7 +48,7 @@ locals {
 # --- S3 Bucket ---
 resource "aws_s3_bucket" "this" {
   bucket = local.bucket_name
-  tags   = var.tags
+  tags   = local.common_tags
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
@@ -120,7 +127,7 @@ data "aws_iam_policy_document" "trust" {
 resource "aws_iam_role" "github_actions" {
   name               = "${var.project_id}-gh-oidc-role"
   assume_role_policy = data.aws_iam_policy_document.trust.json
-  tags               = var.tags
+  tags               = local.common_tags
 }
 
 # --- Least-privilege policy for bucket + optional KMS ---
@@ -165,7 +172,7 @@ resource "aws_iam_policy" "bucket" {
   name        = "${var.project_id}-bucket-access"
   description = "Access to ${local.bucket_name} and (optional) its KMS key"
   policy      = data.aws_iam_policy_document.bucket.json
-  tags        = var.tags
+  tags        = local.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {
