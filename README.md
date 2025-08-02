@@ -87,6 +87,8 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 
 **Required Variables:**
 - `TF_STATE_BUCKET` - Your S3 bucket name for Terraform state
+- `TF_STATE_KEY_DEV` - State file key for dev environment (e.g., "s3-oidc-dev-terraform.tfstate")
+- `TF_STATE_KEY_PROD` - State file key for prod environment (e.g., "s3-oidc-prod-terraform.tfstate")
 
 ### Step 2: One-Time Bootstrap (Manual)
 

@@ -166,6 +166,24 @@ data "aws_iam_policy_document" "bucket" {
       resources = [local.effective_kms_key_arn]
     }
   }
+
+  # Add state bucket permissions if provided
+  dynamic "statement" {
+    for_each = var.terraform_state_bucket != null ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ]
+      resources = [
+        "arn:aws:s3:::${var.terraform_state_bucket}",
+        "arn:aws:s3:::${var.terraform_state_bucket}/*"
+      ]
+    }
+  }
 }
 
 resource "aws_iam_policy" "bucket" {

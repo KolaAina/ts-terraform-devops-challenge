@@ -16,6 +16,7 @@ module "s3" {
 
   aws_account_id             = var.aws_account_id
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
+  terraform_state_bucket     = var.terraform_state_bucket
 
   tags = merge(var.tags, { Environment = "prod" })
 }

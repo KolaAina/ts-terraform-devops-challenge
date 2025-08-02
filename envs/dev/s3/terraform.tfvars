@@ -14,6 +14,9 @@ aws_account_id             = "443370701422"
 existing_oidc_provider_arn = null # or # set if you already have it
 #existing_oidc_provider_arn = "arn:aws:iam::443370701422:oidc-provider/token.actions.githubusercontent.com" # set if you already have it
 
+# State bucket for IAM permissions
+terraform_state_bucket = "kada-terraform-eks-state-s3-bucket"
+
 tags = {
   Project = "kolam"
   Owner   = "kolam"

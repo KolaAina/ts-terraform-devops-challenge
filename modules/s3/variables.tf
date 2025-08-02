@@ -69,3 +69,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "terraform_state_bucket" {
+  description = "S3 bucket name for Terraform state (for IAM permissions)"
+  type        = string
+  default     = null
+}
