@@ -123,4 +123,8 @@ aws-credentials.json
 
 # Local development files
 local/
-dev-local/ 
+dev-local/
+
+# Terraform temporary files
+ive
+*.tmp 

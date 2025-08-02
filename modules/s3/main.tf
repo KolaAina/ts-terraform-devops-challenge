@@ -18,7 +18,7 @@ locals {
 
   # Build trust subjects. You can extend this list (e.g., tags or PRs) if needed.
   github_sub = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
-  
+
   # Common tags including account ID
   common_tags = merge(var.tags, {
     AccountId = var.aws_account_id
