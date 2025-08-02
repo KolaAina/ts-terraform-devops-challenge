@@ -54,6 +54,13 @@ jobs:
       # Terraform needed for the tests
       - uses: hashicorp/setup-terraform@v3
 
+      # Configure AWS credentials for testing
+      - name: Configure AWS credentials via OIDC (TEST)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Run Jest plan-only tests
         run: npm test
 
