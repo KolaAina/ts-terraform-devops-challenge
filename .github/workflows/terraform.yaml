@@ -106,3 +106,55 @@ jobs:
       - name: Terraform apply (DEV)
         working-directory: ./envs/dev/s3
         run: terraform apply -input=false -auto-approve plan.tfplan
+
+  plan_prod:
+    needs: [apply_dev]
+    environment: prod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (PROD)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=s3-oidc-prod-terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform plan (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform plan -input=false -out=plan.tfplan
+
+      - name: Fail on destructive changes
+        working-directory: ./envs/prod/s3
+        run: |
+          terraform show -json plan.tfplan | jq -e '
+            .resource_changes[]? | select(.change.actions[] | contains("delete"))
+          ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
+
+  apply_prod:
+    needs: [plan_prod]
+    environment: prod
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (PROD)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=s3-oidc-prod-terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform apply (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform apply -input=false -auto-approve plan.tfplan
