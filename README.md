@@ -79,6 +79,76 @@ Typescript-project/
 - **AWS CLI** configured with appropriate permissions (for deployment)
 - **GitHub Repository** with Actions enabled
 
+## 🔧 Initial Setup (One-Time Bootstrap)
+
+### Step 1: Configure GitHub Variables
+
+Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions** and add:
+
+**Required Variables:**
+- `TF_STATE_BUCKET` - Your S3 bucket name for Terraform state
+
+### Step 2: One-Time Bootstrap (Manual)
+
+**Important**: This is a one-time setup that creates the OIDC provider in your AWS account.
+
+1. **Deploy Dev Environment First:**
+   ```bash
+   cd envs/dev/s3
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+2. **Get the OIDC Role ARN:**
+   ```bash
+   terraform output dev_oidc_role_arn
+   ```
+
+3. **Add OIDC Role ARN to GitHub:**
+   - Go to GitHub → Settings → Secrets and variables → Actions
+   - Add variable: `AWS_ROLE_ARN_DEV` with the ARN from step 2
+
+4. **Deploy Prod Environment:**
+   ```bash
+   cd ../../prod/s3
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+5. **Get the Prod OIDC Role ARN:**
+   ```bash
+   terraform output prod_oidc_role_arn
+   ```
+
+6. **Add Prod OIDC Role ARN to GitHub:**
+   - Add variable: `AWS_ROLE_ARN_PROD` with the ARN from step 5
+
+### Step 3: Verify Bootstrap
+
+After bootstrap, you should have:
+- ✅ **One OIDC Provider** in your AWS account (created by dev)
+- ✅ **Two IAM Roles** (dev and prod) that trust the same OIDC provider
+- ✅ **GitHub Variables** configured for CI/CD
+- ✅ **S3 Buckets** created for both environments
+
+### Step 4: Test CI/CD Pipeline
+
+```bash
+git add .
+git commit -m "Initial setup complete"
+git push origin main
+```
+
+The CI/CD pipeline should now work with OIDC authentication!
+
+## 🔄 How OIDC Provider Works
+
+- **Dev Environment**: Creates the OIDC provider (`existing_oidc_provider_arn = null`)
+- **Prod Environment**: Reuses the same OIDC provider (`existing_oidc_provider_arn = "arn:aws:iam::...:oidc-provider/token.actions.githubusercontent.com"`)
+- **Best Practice**: One OIDC provider per AWS account, multiple roles can trust it
+
 ## ⚙️ Configuration
 
 ### 1. Environment Variables
@@ -200,6 +270,8 @@ The GitHub Actions workflow automatically:
 4. **Applies** dev changes (on main branch)
 5. **Prevents destructive changes** with safety checks
 
+**Important**: The workflow deploys dev first, then prod. This ensures the OIDC provider exists before prod tries to use it.
+
 ### Testing Before Deployment
 
 ```bash
@@ -273,6 +345,20 @@ Use the created IAM role in your GitHub Actions workflows:
 3. **Backend Lock Issues**: Use `use_lockfile = true` for local development
 4. **Test Failures**: Ensure Node.js dependencies are installed with `npm install`
 
+### Bootstrap Issues
+
+1. **"No OpenIDConnect provider found"**
+   - **Solution**: Run the one-time bootstrap process (dev environment first)
+   - **Check**: Ensure dev environment has `existing_oidc_provider_arn = null`
+
+2. **"OIDC provider already exists"**
+   - **Solution**: Update prod environment to use the existing provider ARN
+   - **Check**: Verify the ARN in `envs/prod/s3/terraform.tfvars`
+
+3. **"Role ARN not found in GitHub"**
+   - **Solution**: Add the role ARN as a GitHub variable
+   - **Steps**: Get ARN from `terraform output`, add to GitHub repository variables
+
 ### Debug Commands
 
 ```bash
@@ -290,9 +376,15 @@ terraform import module.s3.aws_iam_policy.bucket arn:aws:iam::ACCOUNT:policy/POL
 
 # Debug tests
 npm test -- --verbose
+
+# Check OIDC provider exists
+aws iam list-open-id-connect-providers
+
+# Get OIDC provider details
+aws iam get-open-id-connect-provider --open-id-connect-provider-arn "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"
 ```
 
-## 📝 Setup Instructions
+## �� Setup Instructions
 
 ### 1. Initial Setup
 ```bash
