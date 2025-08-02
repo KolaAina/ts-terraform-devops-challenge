@@ -16,6 +16,8 @@ existing_oidc_provider_arn = null # or # set if you already have it
 
 # State bucket for IAM permissions
 terraform_state_bucket = "kada-terraform-eks-state-s3-bucket"
+terraform_state_key    = "s3-new-oidc-dev-terraform.tfstate"
+terraform_state_dynamodb_table = "kada-terraform-eks-state-lock"
 
 tags = {
   Project = "kolam"

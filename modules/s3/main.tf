@@ -180,7 +180,23 @@ data "aws_iam_policy_document" "bucket" {
       ]
       resources = [
         "arn:aws:s3:::${var.terraform_state_bucket}",
-        "arn:aws:s3:::${var.terraform_state_bucket}/*"
+        var.terraform_state_key != null ? "arn:aws:s3:::${var.terraform_state_bucket}/${var.terraform_state_key}" : "arn:aws:s3:::${var.terraform_state_bucket}/*"
+      ]
+    }
+  }
+
+  # Add DynamoDB permissions for state locking if state bucket is provided
+  dynamic "statement" {
+    for_each = var.terraform_state_bucket != null ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ]
+      resources = [
+        var.terraform_state_dynamodb_table != null ? "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${var.terraform_state_dynamodb_table}" : "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/*"
       ]
     }
   }

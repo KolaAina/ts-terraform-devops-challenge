@@ -75,3 +75,15 @@ variable "terraform_state_bucket" {
   type        = string
   default     = null
 }
+
+variable "terraform_state_key" {
+  description = "S3 key for Terraform state (for IAM permissions)"
+  type        = string
+  default     = null
+}
+
+variable "terraform_state_dynamodb_table" {
+  description = "DynamoDB table name for Terraform state locking (for IAM permissions)"
+  type        = string
+  default     = null
+}
