@@ -72,7 +72,7 @@ jobs:
 
       - name: Terraform init (DEV)
         working-directory: ./envs/dev/s3
-        run: terraform init -input=false
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=s3-oidc-dev-terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform plan (DEV)
         working-directory: ./envs/dev/s3
@@ -101,7 +101,7 @@ jobs:
 
       - name: Terraform init (DEV)
         working-directory: ./envs/dev/s3
-        run: terraform init -input=false
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=s3-oidc-dev-terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform apply (DEV)
         working-directory: ./envs/dev/s3
