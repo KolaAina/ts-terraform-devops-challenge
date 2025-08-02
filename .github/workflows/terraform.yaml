@@ -24,11 +24,12 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - uses: terraform-linters/setup-tflint@v4
-      - name: Init TFLint plugins
-        run: tflint --init
-      - name: TFLint
-        run: tflint --recursive
+      # Temporarily disabled due to GitHub API rate limits
+      # - uses: terraform-linters/setup-tflint@v4
+      # - name: Init TFLint plugins
+      #   run: tflint --init
+      # - name: TFLint
+      #   run: tflint --recursive
 
       - name: Terraform fmt (check)
         run: terraform fmt -check -recursive
