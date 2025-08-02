@@ -14,21 +14,47 @@ async function terraformPlanJson() {
   const tfFiles = fs.readdirSync(devDir).filter(f => f.endsWith('.tf'));
   assert(tfFiles.length > 0, `No .tf files in ${devDir}`);
 
-  // Init without backend (no remote creds needed for testing)
-  await execa('terraform', ['init', '-backend=false'], { cwd: devDir });
+  // Temporarily rename backend.tf to avoid backend configuration
+  const backendTfPath = path.join(devDir, 'backend.tf');
+  const backendTfBackupPath = path.join(devDir, 'backend.tf.backup');
+  let backendTfExists = false;
+  
+  // Remove .terraform directory if it exists
+  const terraformDir = path.join(devDir, '.terraform');
+  let terraformDirExists = false;
+  
+  try {
+    if (fs.existsSync(backendTfPath)) {
+      fs.renameSync(backendTfPath, backendTfBackupPath);
+      backendTfExists = true;
+    }
+    
+    if (fs.existsSync(terraformDir)) {
+      fs.rmSync(terraformDir, { recursive: true, force: true });
+      terraformDirExists = true;
+    }
 
-  // Create plan
-  await execa(
-    'terraform',
-    ['plan', '-out=plan.tfplan', '-input=false', '-lock=false', '-refresh=false'],
-    { cwd: devDir }
-  );
+    // Init without backend (no remote creds needed for testing)
+    await execa('terraform', ['init', '-backend=false'], { cwd: devDir });
 
-  // Show plan as JSON
-  const { stdout } = await execa('terraform', ['show', '-json', 'plan.tfplan'], {
-    cwd: devDir
-  });
-  return JSON.parse(stdout);
+    // Create plan
+    await execa(
+      'terraform',
+      ['plan', '-out=plan.tfplan', '-input=false', '-lock=false', '-refresh=false'],
+      { cwd: devDir }
+    );
+
+    // Show plan as JSON
+    const { stdout } = await execa('terraform', ['show', '-json', 'plan.tfplan'], {
+      cwd: devDir
+    });
+    return JSON.parse(stdout);
+  } finally {
+    // Restore backend.tf if it existed
+    if (backendTfExists && fs.existsSync(backendTfBackupPath)) {
+      fs.renameSync(backendTfBackupPath, backendTfPath);
+    }
+  }
 }
 
 function changes(plan: any, type: string) {
