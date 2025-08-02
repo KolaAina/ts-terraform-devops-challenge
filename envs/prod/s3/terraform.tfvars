@@ -10,7 +10,7 @@ github_owner  = "KolaAina"
 github_repo   = "ts-terraform-devops-challenge"
 github_branch = "main" #must match your workflow triggers
 
-aws_account_id             = "443370701422"
+aws_account_id = "443370701422"
 # OIDC Configuration - Use the provider created by dev environment
 existing_oidc_provider_arn = "arn:aws:iam::443370701422:oidc-provider/token.actions.githubusercontent.com" # Will be created by dev environment
 
