@@ -14,14 +14,8 @@ async function terraformPlanJson() {
   const tfFiles = fs.readdirSync(devDir).filter(f => f.endsWith('.tf'));
   assert(tfFiles.length > 0, `No .tf files in ${devDir}`);
 
-  // Init with backend configuration
-  await execa('terraform', [
-    'init', 
-    '-input=false',
-    '-backend-config=bucket=kada-terraform-eks-state-s3-bucket',
-    '-backend-config=key=s3-oidc-dev-terraform.tfstate',
-    '-backend-config=region=us-east-1'
-  ], { cwd: devDir });
+  // Init without backend (no remote creds needed for testing)
+  await execa('terraform', ['init', '-backend=false'], { cwd: devDir });
 
   // Create plan
   await execa(
