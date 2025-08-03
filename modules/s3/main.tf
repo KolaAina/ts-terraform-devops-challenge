@@ -67,7 +67,6 @@ resource "aws_s3_bucket_versioning" "this" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  count  = var.enable_kms_encryption ? 1 : 0
   bucket = aws_s3_bucket.this.id
   rule {
     apply_server_side_encryption_by_default {
@@ -216,18 +215,21 @@ data "aws_iam_policy_document" "bucket" {
     resources = ["*"]
   }
 
-  # KMS permissions removed since KMS encryption is disabled
-  # statement {
-  #   effect = "Allow"
-  #   actions = [
-  #     "kms:CreateKey",
-  #     "kms:CreateAlias",
-  #     "kms:TagResource",
-  #     "kms:EnableKeyRotation",
-  #     "kms:ScheduleKeyDeletion"
-  #   ]
-  #   resources = ["*"]
-  # }
+  # Add KMS permissions if KMS encryption is enabled
+  dynamic "statement" {
+    for_each = var.enable_kms_encryption ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "kms:CreateKey",
+        "kms:CreateAlias",
+        "kms:TagResource",
+        "kms:EnableKeyRotation",
+        "kms:ScheduleKeyDeletion"
+      ]
+      resources = ["*"]
+    }
+  }
 
   statement {
     effect = "Allow"
