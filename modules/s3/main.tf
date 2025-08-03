@@ -202,7 +202,7 @@ data "aws_iam_policy_document" "bucket" {
 
 
 
-  # Add permissions to create resources
+  # Add permissions to create and read resources
   statement {
     effect = "Allow"
     actions = [
@@ -212,7 +212,9 @@ data "aws_iam_policy_document" "bucket" {
       "s3:PutBucketEncryption",
       "s3:PutBucketOwnershipControls",
       "s3:PutBucketPolicy",
-      "s3:DeleteBucketPolicy"
+      "s3:DeleteBucketPolicy",
+      "s3:Get*",
+      "s3:List*"
     ]
     resources = ["*"]
   }
@@ -241,7 +243,13 @@ data "aws_iam_policy_document" "bucket" {
       "iam:CreatePolicy",
       "iam:AttachRolePolicy",
       "iam:TagRole",
-      "iam:TagPolicy"
+      "iam:TagPolicy",
+      "iam:GetOpenIDConnectProvider",
+      "iam:GetRole",
+      "iam:GetPolicy",
+      "iam:ListOpenIDConnectProviders",
+      "iam:ListRolePolicies",
+      "iam:ListAttachedRolePolicies"
     ]
     resources = ["*"]
   }
