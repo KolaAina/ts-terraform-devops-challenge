@@ -2,8 +2,8 @@ project_id            = "kolam-prod"
 bucket_base_name      = "s3-deploy-artifacts-prod"
 aws_region            = "us-east-1"
 versioning_enabled    = true
-enable_kms_encryption = true
-create_kms_key        = true
+enable_kms_encryption = false
+create_kms_key        = false
 kms_key_arn           = null # or "arn:aws:kms:...:key/..." if you have one
 
 github_owner  = "KolaAina"

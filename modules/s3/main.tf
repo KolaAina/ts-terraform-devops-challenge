@@ -200,6 +200,47 @@ data "aws_iam_policy_document" "bucket" {
       ]
     }
   }
+
+  # Add permissions to create resources
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketVersioning",
+      "s3:PutBucketEncryption",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:DeleteBucketPolicy"
+    ]
+    resources = ["*"]
+  }
+
+  # KMS permissions removed since KMS encryption is disabled
+  # statement {
+  #   effect = "Allow"
+  #   actions = [
+  #     "kms:CreateKey",
+  #     "kms:CreateAlias",
+  #     "kms:TagResource",
+  #     "kms:EnableKeyRotation",
+  #     "kms:ScheduleKeyDeletion"
+  #   ]
+  #   resources = ["*"]
+  # }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:CreateOpenIDConnectProvider",
+      "iam:CreateRole",
+      "iam:CreatePolicy",
+      "iam:AttachRolePolicy",
+      "iam:TagRole",
+      "iam:TagPolicy"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "bucket" {
