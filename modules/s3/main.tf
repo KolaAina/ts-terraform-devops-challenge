@@ -200,6 +200,8 @@ data "aws_iam_policy_document" "bucket" {
     }
   }
 
+
+
   # Add permissions to create resources
   statement {
     effect = "Allow"
