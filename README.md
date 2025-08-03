@@ -1,6 +1,6 @@
 # Terraform S3 OIDC Project
 
-A production-ready Terraform project that creates secure S3 buckets with GitHub OIDC authentication, KMS encryption, automated CI/CD pipeline using GitHub Actions, and comprehensive TypeScript-based testing using Jest.
+A production-ready Terraform(Module) project that creates secure S3 buckets with GitHub OIDC authentication, KMS encryption, automated CI/CD pipeline using GitHub Actions, and comprehensive TypeScript-based testing using Jest. This was designed to be meet the task to Develop a CDK Construct (TypeScript) that provisions an S3 bucket. I have chosen to design it this way using terraform-modules as a reusable and cloud agnostic solution to meet the challenge given while following terraform best practices.
 
 ## 🏗️ Architecture
 
@@ -51,19 +51,19 @@ Typescript-project/
 - **OIDC Authentication**: Secure GitHub Actions integration without long-lived credentials
 - **KMS Encryption**: Optional server-side encryption with customer-managed keys
 - **Public Access Blocking**: All public access disabled by default
-- **Least-Privilege IAM**: Minimal required permissions for GitHub Actions
+- **Least-Privilege IAM**: Comprehensive permissions for GitHub Actions operations
 
 ### Infrastructure
 - **Multi-Environment**: Separate dev and prod configurations
-- **State Management**: S3 backend with locking
+- **State Management**: S3 backend with DynamoDB locking
 - **Versioning**: Optional S3 bucket versioning
-- **Tagging**: Consistent resource tagging
+- **Tagging**: Consistent resource tagging with account ID
 
 ### CI/CD
 - **Automated Pipeline**: GitHub Actions for plan/apply
 - **Environment Protection**: Manual approval for production
 - **Linting & Validation**: Terraform fmt, tflint, and validate
-- **Destructive Change Protection**: Prevents accidental deletions
+- **Destructive Change Protection**: Prevents accidental deletions with automated safety checks
 
 ### Testing
 - **TypeScript Integration**: Jest-based infrastructure testing
@@ -78,8 +78,23 @@ Typescript-project/
 - **npm** or **yarn**
 - **AWS CLI** configured with appropriate permissions (for deployment)
 - **GitHub Repository** with Actions enabled
+- **Existing S3 bucket** for Terraform state storage
+- **Existing DynamoDB table** for state locking
 
 ## 🔧 Initial Setup (One-Time Bootstrap)
+
+
+
+1) **Clone & set origin**  
+```bash
+git clone https://github.com/<Owner>/<Repository-name>.git
+git init
+git checkout -b main
+git remote add origin git@github.com:<OWNER>/project-name.git
+
+### ⚠️ CRITICAL: Bootstrap Process
+
+**This project requires a specific bootstrap sequence due to OIDC provider dependencies. Follow these steps exactly:**
 
 ### Step 1: Configure GitHub Variables
 
@@ -87,14 +102,20 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 
 **Required Variables:**
 - `TF_STATE_BUCKET` - Your S3 bucket name for Terraform state
-- `TF_STATE_KEY_DEV` - State file key for dev environment (e.g., "s3-oidc-dev-terraform.tfstate")
-- `TF_STATE_KEY_PROD` - State file key for prod environment (e.g., "s3-oidc-prod-terraform.tfstate")
+- `TF_STATE_KEY_DEV` - State file key for dev environment (e.g., "test-oidc-dev-terraform.tfstate")
+- `TF_STATE_KEY_PROD` - State file key for prod environment (e.g., "test-oidc-prod-terraform.tfstate")
 
-### Step 2: One-Time Bootstrap (Manual)
+### Step 2: Initial Dev Environment Bootstrap
 
-**Important**: This is a one-time setup that creates the OIDC provider in your AWS account.
+**This creates the OIDC provider that both environments will use:**
 
-1. **Deploy Dev Environment First:**
+1. **Ensure dev environment is configured to create OIDC:**
+   ```hcl
+   # envs/dev/s3/terraform.tfvars
+   existing_oidc_provider_arn = null  # This creates the OIDC provider
+   ```
+
+2. **Deploy dev environment manually:**
    ```bash
    cd envs/dev/s3
    terraform init
@@ -102,48 +123,58 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
    terraform apply
    ```
 
-2. **Get the OIDC Role ARN:**
+3. **Get the generated OIDC provider ARN:**
    ```bash
    terraform output dev_oidc_role_arn
    ```
 
-3. **Add OIDC Role ARN to GitHub:**
-   - Go to GitHub → Settings → Secrets and variables → Actions
-   - Add variable: `AWS_ROLE_ARN_DEV` with the ARN from step 2
-
-4. **Deploy Prod Environment:**
+4. **Update both environments to use existing OIDC (CRITICAL for CI/CD):**
    ```bash
-   cd ../../prod/s3
+   # Copy the ARN from step 3 and update BOTH environments:
+   
+   # envs/dev/s3/terraform.tfvars
+   existing_oidc_provider_arn = "arn:aws:iam::YOUR_ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+   
+   # envs/prod/s3/terraform.tfvars  
+   existing_oidc_provider_arn = "arn:aws:iam::YOUR_ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+   ```
+
+### Step 3: Deploy Prod Environment
+
+**Note**: Both environments should now use the existing OIDC provider ARN from Step 2.4 above.
+
+2. **Deploy prod environment:**
+   ```bash
+   cd envs/prod/s3
    terraform init
    terraform plan
    terraform apply
    ```
-
-5. **Get the Prod OIDC Role ARN:**
+3. **Get the Prod OIDC Role ARN:**
    ```bash
    terraform output prod_oidc_role_arn
    ```
 
-6. **Add Prod OIDC Role ARN to GitHub:**
-   - Add variable: `AWS_ROLE_ARN_PROD` with the ARN from step 5
+### Step 4: Configure GitHub Actions
 
-### Step 3: Verify Bootstrap
+Add these variables to GitHub → Settings → Secrets and variables → Actions:
 
-After bootstrap, you should have:
-- ✅ **One OIDC Provider** in your AWS account (created by dev)
-- ✅ **Two IAM Roles** (dev and prod) that trust the same OIDC provider
-- ✅ **GitHub Variables** configured for CI/CD
-- ✅ **S3 Buckets** created for both environments
+- `AWS_ROLE_ARN_DEV`: The dev role ARN (get from terraform output)
+- `AWS_ROLE_ARN_PROD`: The prod role ARN (get from terraform output)
 
-### Step 4: Test CI/CD Pipeline
+### Step 5: Create GitHub Environment for Prod
+
+1. Go to GitHub → Settings → Environments
+2. Create environment named `prod`
+3. Add protection rules (required reviewers, wait timer, etc.)
+
+### Step 6: Test CI/CD Pipeline
 
 ```bash
 git add .
-git commit -m "Initial setup complete"
+git commit -m "Bootstrap complete - ready for CI/CD"
 git push origin main
 ```
-
-The CI/CD pipeline should now work with OIDC authentication!
 
 ## 🔄 How OIDC Provider Works
 
@@ -160,18 +191,22 @@ Update `envs/dev/s3/terraform.tfvars` and `envs/prod/s3/terraform.tfvars`:
 ```hcl
 project_id            = "your-project-name"
 bucket_base_name      = "your-bucket-name"
-aws_region            = "us-east-1"
+aws_region            = "aws-region"
 versioning_enabled    = true
-enable_kms_encryption = true
-create_kms_key        = true
-kms_key_arn           = null  # or existing KMS key ARN
+enable_kms_encryption = false  # Set to false initially to avoid permission issues
+create_kms_key        = false  # Set to false initially
 
 github_owner          = "your-github-username"
 github_repo           = "your-repo-name"
 github_branch         = "main"
 
 aws_account_id        = "123456789012"
-existing_oidc_provider_arn = null  # or existing OIDC provider ARN
+existing_oidc_provider_arn = null  # For dev (creates OIDC), set ARN for prod
+
+# State management configuration
+terraform_state_bucket         = "your-state-s3-bucket"
+terraform_state_key            = "your-terraform.tfstate"  # Change for prod
+terraform_state_dynamodb_table = "your-db-lock"
 
 tags = {
   Project = "your-project"
@@ -179,25 +214,19 @@ tags = {
 }
 ```
 
-### 3. GitHub Actions Setup
-
-1. **Repository Variables**: Set in GitHub → Settings → Secrets and variables → Actions:
-   - `AWS_ROLE_ARN_DEV`: ARN of the dev IAM role (output after first deployment)
-
-2. **Environment Protection**: Configure GitHub Environments for `dev` with appropriate protection rules.
-
 ### 2. Backend Configuration
 
 Update `envs/dev/s3/backend.tf` and `envs/prod/s3/backend.tf`:
 
 ```hcl
 terraform {
+  required_version = ">= 1.0.0"
   backend "s3" {
-    bucket       = "your-terraform-state-bucket"
-    key          = "s3-oidc-dev-terraform.tfstate"
-    region       = "us-east-1"
-    use_lockfile = true
-    encrypt      = true
+    bucket         = "yours"
+    key            = "your-key"  # Change for prod
+    region         = "aws-region"
+    dynamodb_table = "your-db"
+    encrypt        = true
   }
 }
 ```
@@ -223,7 +252,7 @@ The test suite validates:
 
 1. **S3 Bucket Creation**: Ensures bucket is created with correct configuration
 2. **Versioning**: Validates bucket versioning is enabled
-3. **Encryption**: Checks for KMS encryption configuration
+3. **Encryption**: Checks for encryption configuration (KMS or AES256)
 4. **Public Access Blocking**: Verifies all public access is disabled
 5. **OIDC Configuration**: Validates GitHub OIDC provider setup
 6. **IAM Role**: Ensures IAM role exists with proper naming
@@ -316,10 +345,10 @@ Use the created IAM role in your GitHub Actions workflows:
 ## 🛡️ Security Features
 
 - **OIDC Trust**: Only allows GitHub Actions from specified repository and branch
-- **Encryption**: Server-side encryption with KMS (optional)
+- **Encryption**: Server-side encryption with KMS (optional) or AES256
 - **Access Control**: Public access completely blocked
 - **Audit Trail**: All actions logged via CloudTrail
-- **Least Privilege**: Minimal IAM permissions for GitHub Actions
+- **Least Privilege**: Necessary IAM permissions for GitHub Actions
 
 ## 🔄 Maintenance
 
@@ -329,6 +358,7 @@ Use the created IAM role in your GitHub Actions workflows:
 2. Update `terraform.tfvars` with environment-specific values
 3. Update backend configuration
 4. Update test configuration if needed
+5. **Important**: Set `existing_oidc_provider_arn` to use the existing OIDC provider
 
 ### Updating Module
 
@@ -344,7 +374,7 @@ Use the created IAM role in your GitHub Actions workflows:
 
 1. **OIDC Provider Already Exists**: Set `existing_oidc_provider_arn` to use existing provider
 2. **IAM Policy Name Conflict**: Module uses unique names with bucket base name
-3. **Backend Lock Issues**: Use `use_lockfile = true` for local development
+3. **Backend Lock Issues**: Ensure DynamoDB table exists and has proper permissions or Use `use_lockfile = true` for local development
 4. **Test Failures**: Ensure Node.js dependencies are installed with `npm install`
 
 ### Bootstrap Issues
@@ -360,6 +390,10 @@ Use the created IAM role in your GitHub Actions workflows:
 3. **"Role ARN not found in GitHub"**
    - **Solution**: Add the role ARN as a GitHub variable
    - **Steps**: Get ARN from `terraform output`, add to GitHub repository variables
+
+4. **Permission Errors (403 AccessDenied)**
+   - **Solution**: The IAM role has comprehensive permissions, but you may need to import existing resources
+   - **Steps**: Use `terraform import` for existing resources, or delete and recreate
 
 ### Debug Commands
 
@@ -386,54 +420,35 @@ aws iam list-open-id-connect-providers
 aws iam get-open-id-connect-provider --open-id-connect-provider-arn "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"
 ```
 
-## �� Setup Instructions
 
-### 1. Initial Setup
-```bash
-# Clone your repository
-git clone https://github.com/<Owner>/<Repository-name>.git
-cd <Repository-name>
+## 🧭 Design Decisions & Trade‑offs
 
-# Install Node.js dependencies
-npm install
+- **Terraform module** instead of CDK construct to keep the solution **cloud‑agnostic**, composable, and registry‑friendly.
+- **Singleton OIDC**: Owned by **dev**; **prod** **references** it to avoid multi‑state ownership.
+- **Directory per env** over workspaces: easier review, clearer diffs, safer drift management.
 
-# Update configuration files
-# - envs/dev/s3/terraform.tfvars
-# - envs/prod/s3/terraform.tfvars
-# - envs/dev/s3/backend.tf
-# - envs/prod/s3/backend.tf
 
-# Test configuration
-npm test
+## 🔧 Special Considerations
 
-# Commit and push changes
-git add .
-git commit -m "Update configuration for deployment"
-git push origin main
-```
+### Permission Management
+- The IAM role has comprehensive permissions to avoid "whack-a-mole" permission issues
+- Uses `s3:Get*`, `s3:List*`, `iam:Get*`, `iam:List*` for broad read access
+- Specific write permissions for S3, IAM, and DynamoDB operations
 
-### 2. First Deployment
+### State Management
+- Uses S3 backend with DynamoDB locking for state consistency
+- Separate state files for dev and prod environments
+- Configurable state bucket, key, and DynamoDB table names
 
-1. **Create S3 Backend Bucket**: Create the S3 bucket specified in your backend configuration
-2. **Deploy Dev Environment**: 
-   ```bash
-   cd envs/dev/s3
-   terraform init
-   terraform apply
-   ```
-3. **Capture IAM Role ARN**: Note the IAM role ARN from the deployment outputs
+### KMS Encryption
+- Initially disabled to avoid permission issues during bootstrap
+- Can be enabled after initial deployment by setting `enable_kms_encryption = true`
+- Conditional KMS permissions in IAM policy
 
-### 3. Configure GitHub Actions
-
-After deployment, update your GitHub repository variables:
-- `AWS_ROLE_ARN_DEV`: Use the dev role ARN from deployment outputs
-
-### 4. Trigger CI/CD Pipeline
-
-1. **Push to main branch**: This will trigger the GitHub Actions workflow
-2. **Monitor deployment**: Check Actions tab for deployment progress
-3. **Verify infrastructure**: The pipeline will automatically test and deploy changes
-
+### CI/CD Pipeline Design
+- Re-run plan before apply jobs to prevent stale plan errors.
+- Manual approval required for production deployments
+- Comprehensive testing before deployment
 
 ## Contributing
 
@@ -444,9 +459,11 @@ After deployment, update your GitHub repository variables:
 5. Run `npm test` to validate
 6. Submit a pull request
 
+## Support
 
-For issues and questions, mail me: kolawoleaina96@gmail.com
+For issues and questions:
 - Create a GitHub issue
 - Check the troubleshooting section
 - Review AWS and Terraform documentation
-- Check test output for validation errors 
+- Check test output for validation errors
+- Contact: kolawoleaina96@gmail.com 

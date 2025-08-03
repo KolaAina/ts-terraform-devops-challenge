@@ -241,15 +241,16 @@ data "aws_iam_policy_document" "bucket" {
       "iam:CreateOpenIDConnectProvider",
       "iam:CreateRole",
       "iam:CreatePolicy",
+      "iam:CreatePolicyVersion",
       "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:DeleteRole",
+      "iam:DeletePolicy",
+      "iam:DeletePolicyVersion",
       "iam:TagRole",
       "iam:TagPolicy",
-      "iam:GetOpenIDConnectProvider",
-      "iam:GetRole",
-      "iam:GetPolicy",
-      "iam:ListOpenIDConnectProviders",
-      "iam:ListRolePolicies",
-      "iam:ListAttachedRolePolicies"
+      "iam:Get*",
+      "iam:List*"
     ]
     resources = ["*"]
   }
