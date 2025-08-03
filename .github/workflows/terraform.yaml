@@ -95,7 +95,7 @@ jobs:
           ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
 
       - name: Upload Terraform plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-dev
           path: envs/dev/s3/plan.tfplan
@@ -120,7 +120,7 @@ jobs:
         # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Download Terraform plan
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: terraform-plan-dev
           path: envs/dev/s3/
@@ -160,7 +160,7 @@ jobs:
           ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
 
       - name: Upload Terraform plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-prod
           path: envs/prod/s3/plan.tfplan
@@ -186,7 +186,7 @@ jobs:
         # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Download Terraform plan
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: terraform-plan-prod
           path: envs/prod/s3/
