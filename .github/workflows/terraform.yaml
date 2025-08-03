@@ -94,6 +94,12 @@ jobs:
             .resource_changes[]? | select(.change.actions[] | contains("delete"))
           ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
 
+      - name: Upload Terraform plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan-dev
+          path: envs/dev/s3/plan.tfplan
+
   apply_dev:
     needs: [plan_dev]
     if: github.ref == 'refs/heads/main'
@@ -112,6 +118,12 @@ jobs:
         working-directory: ./envs/dev/s3
         run: terraform init -backend=false
         # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Download Terraform plan
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-plan-dev
+          path: envs/dev/s3/
 
       - name: Terraform apply (DEV)
         working-directory: ./envs/dev/s3
@@ -147,6 +159,12 @@ jobs:
             .resource_changes[]? | select(.change.actions[] | contains("delete"))
           ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
 
+      - name: Upload Terraform plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan-prod
+          path: envs/prod/s3/plan.tfplan
+
   apply_prod:
     needs: [plan_prod]
     environment: prod
@@ -166,6 +184,12 @@ jobs:
         working-directory: ./envs/prod/s3
         run: terraform init -backend=false
         # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Download Terraform plan
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-plan-prod
+          path: envs/prod/s3/
 
       - name: Terraform apply (PROD)
         working-directory: ./envs/prod/s3
