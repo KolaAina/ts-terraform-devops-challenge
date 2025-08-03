@@ -80,7 +80,8 @@ jobs:
 
       - name: Terraform init (DEV)
         working-directory: ./envs/dev/s3
-        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+        run: terraform init -backend=false
+        # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform plan (DEV)
         working-directory: ./envs/dev/s3
@@ -109,7 +110,8 @@ jobs:
 
       - name: Terraform init (DEV)
         working-directory: ./envs/dev/s3
-        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+        run: terraform init -backend=false
+        # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform apply (DEV)
         working-directory: ./envs/dev/s3
@@ -131,7 +133,8 @@ jobs:
 
       - name: Terraform init (PROD)
         working-directory: ./envs/prod/s3
-        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
+        run: terraform init -backend=false
+        # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform plan (PROD)
         working-directory: ./envs/prod/s3
@@ -161,7 +164,8 @@ jobs:
 
       - name: Terraform init (PROD)
         working-directory: ./envs/prod/s3
-        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
+        run: terraform init -backend=false
+        # run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="key=${{ vars.TF_STATE_KEY_PROD }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform apply (PROD)
         working-directory: ./envs/prod/s3
